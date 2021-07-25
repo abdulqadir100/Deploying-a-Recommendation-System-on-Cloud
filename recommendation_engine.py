@@ -152,9 +152,9 @@ class Movie_recomendation_system(Recommendation_tools):
         # Generates an array of interesting movies previously watched by the target user i.e movies the target user gave a rating of 5
         movies_watched_by_target_user =  user_preference[(user_preference.user_id == target_user) & (user_preference.rating >=5)].movie_title.unique()
         # Set random seed
-        random.seed(random.sample([99,1,101,23,42],1)[0])
+        #random.seed(random.sample([99,1,101,23,42],1)[0])
         # get 3 random movies liked by the user
-        movies_watched_by_target_user = random.sample(list(movies_watched_by_target_user),5)
+        movies_watched_by_target_user = random.sample(list(movies_watched_by_target_user),3)
         # Generate similar users to target users
         similar_users_preference = Recommendation_tools.recommend_users(user_preference = user_preference,user_id=target_user,metric_to_use=metric_to_use)
 
