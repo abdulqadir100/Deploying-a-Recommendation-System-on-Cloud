@@ -22,7 +22,7 @@ def recommend_movies():
     #movie_title =  features[1]
     output = Movie_recomendation_system.automatic_recommendation(target_user_id)
 
-    return render_template('index.html', prediction_text='Recommended movies {}'.format(output))
+    return render_template('index.html', prediction_text=output)
 
 if __name__ == "__main__":
     app.run(debug=True)
