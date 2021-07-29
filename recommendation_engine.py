@@ -33,21 +33,21 @@ class Recommendation_tools:
         return user_preference
     
     @staticmethod
-    def recommend_users(user_preference,user_id =1,return_n_users  = 5,metric_to_use = 'cosine'):
+    def recommend_users(user_preference,user_id =1,return_n_users  = 25,metric_to_use = 'cosine'):
         #Generates a matrix of movies title and userid with the corresponding rating as the values
         data_matrix = user_preference.pivot_table(values = 'rating',columns ='movie_title',index ='user_id').fillna(0)
         # Generates a sparse matrix
         sparse_data_matrix = csr_matrix(data_matrix)
         # knn model for selecting similary users
-        user_knn_model = NearestNeighbors(n_neighbors=10,metric=metric_to_use, algorithm='brute', n_jobs=-1)
-        user_knn_model.fit(sparse_data_matrix)
+        user_knn_model = NearestNeighbors(n_neighbors=5,metric=metric_to_use, algorithm='brute', n_jobs=-1)
+        user_knn_model.fit(data_matrix)
 
         # index of target user
         query_index = user_id - 1
         # Generate a sparse query
-        sparese_query =  csr_matrix(data_matrix.iloc[query_index,:].values.reshape(1, -1))
+        #sparese_query =  csr_matrix(data_matrix.iloc[query_index,:].values.reshape(1, -1))
         # predict n similar users 
-        distances, indices = user_knn_model.kneighbors(sparese_query,n_neighbors=return_n_users+1)
+        distances, indices = user_knn_model.kneighbors(data_matrix.iloc[query_index,:].values.reshape(1, -1),n_neighbors=return_n_users+1)
 
         # a list of user_id  that are similar to target_user id
         top_n_users = indices[0][1:]
@@ -55,7 +55,7 @@ class Recommendation_tools:
         return data_matrix.iloc[top_n_users]
     
     @staticmethod
-    def recommmend_movies(similar_users_data_matrix,movie_title = 'Legends of the Fall (1994)',return_n_movies  =5,metric_to_use = 'cosine'):
+    def recommmend_movies(similar_users_data_matrix,movie_title = 'Legends of the Fall (1994)',return_n_movies  =25,metric_to_use = 'cosine'):
         #Generates a  Transposed matrix of movies title and userid with the corresponding rating as the values for similar users
         movie_data_matrix = similar_users_data_matrix.T 
         # Generates a sparse matrix
@@ -64,15 +64,15 @@ class Recommendation_tools:
         unique_movie_list = movie_data_matrix.index
         movie_title_index = {unique_movie_list[index]:index  for index in range(len(unique_movie_list))}
         # knn model for selecting similary movies
-        knn_model = NearestNeighbors(n_neighbors=10,metric=metric_to_use, algorithm='brute', n_jobs=-1)
-        knn_model.fit(sparse_movie_data_matrix)
+        knn_model = NearestNeighbors(n_neighbors=5,metric=metric_to_use, algorithm='brute', n_jobs=-1)
+        knn_model.fit(movie_data_matrix)
 
         # index of target movie
         query_index = movie_title_index[movie_title]
         # Generate a sparse query
-        sparese_query_movie =  csr_matrix(movie_data_matrix.iloc[query_index,:].values.reshape(1, -1))
+        #sparese_query_movie =  csr_matrix(movie_data_matrix.iloc[query_index,:].values.reshape(1, -1))
         # predict similar n movies
-        distances, indices = knn_model.kneighbors(sparese_query_movie,n_neighbors=return_n_movies+1)
+        distances, indices = knn_model.kneighbors(movie_data_matrix.iloc[query_index,:].values.reshape(1, -1),n_neighbors=return_n_movies+1)
 
         # list of all similar movie names
         top_n_movies = [movie_data_matrix.index[indices.flatten()][movie] for movie in range(1,len(indices[0]))]
@@ -89,7 +89,7 @@ class Recommendation_tools:
         movie_by_rating = movie_by_rating.reset_index()
         movie_by_rating.columns = ['movie_title','no_rating_recieved_by_movie']
         # Return movies with more than 150 ratings
-        top_movies = movie_by_rating[movie_by_rating.no_rating_recieved_by_movie > 150].movie_title.to_list()
+        top_movies = movie_by_rating[movie_by_rating.no_rating_recieved_by_movie > 50].movie_title.to_list()
         return top_movies
     
     @staticmethod
@@ -104,7 +104,7 @@ class Recommendation_tools:
 
 class Movie_recomendation_system(Recommendation_tools):
     @staticmethod
-    def recommendation_by_favourite_movie(target_user,fav_movie,metric_to_use = 'cosine'):
+    def recommendation_by_favourite_movie(user_preference,target_user,fav_movie,metric_to_use = 'cosine'):
         """
         a method that recommends movies to a user based on the user's favorite movie 
         
@@ -113,9 +113,7 @@ class Movie_recomendation_system(Recommendation_tools):
         target_user = int(input('Enter the target_id of the user: '))
         fav_movie = input('Enter the favourite movie of the user: ')'''
         
-        #  load the user_preference data containing the user_id,movie_title and ratings
-        user_preference = Recommendation_tools.get_user_preference()
-        
+               
         # Generates a list of movies with high rating counts
         top_movies_with_reviews =  Recommendation_tools.highly_rated_movies(user_preference)
 
@@ -134,7 +132,7 @@ class Movie_recomendation_system(Recommendation_tools):
         return true_recommended_movies
     
     @staticmethod
-    def automatic_recommendation(target_user,metric_to_use = 'cosine'):
+    def automatic_recommendation(user_preference,target_user,metric_to_use = 'cosine'):
         
         """
         a method that recommends movies automatically to a user based on the popular movies the user has watched in the past
@@ -144,17 +142,22 @@ class Movie_recomendation_system(Recommendation_tools):
         target_user = int(input('Enter the target_id of the user: '))'''
         
          #  load the user_preference data containing the user_id,movie_title and ratings
-        user_preference = Recommendation_tools.get_user_preference()
+        #user_preference = Recommendation_tools.get_user_preference()
         
         # Generates a list of movies with high rating counts
         top_movies_with_reviews =  Recommendation_tools.highly_rated_movies(user_preference)
 
         # Generates an array of interesting movies previously watched by the target user i.e movies the target user gave a rating of 5
         movies_watched_by_target_user =  user_preference[(user_preference.user_id == target_user) & (user_preference.rating >=5)].movie_title.unique()
+        # limit the range of movies watched by a user
+        if len(movies_watched_by_target_user) > 35:
+            #random.seed(101)
+            # get 25 random movies liked by the user
+            movies_watched_by_target_user = random.sample(list(movies_watched_by_target_user),25)
         # Set random seed
         #random.seed(random.sample([99,1,101,23,42],1)[0])
         # get 3 random movies liked by the user
-        movies_watched_by_target_user = random.sample(list(movies_watched_by_target_user),3)
+        #movies_watched_by_target_user = random.sample(list(movies_watched_by_target_user),3)
         # Generate similar users to target users
         similar_users_preference = Recommendation_tools.recommend_users(user_preference = user_preference,user_id=target_user,metric_to_use=metric_to_use)
 

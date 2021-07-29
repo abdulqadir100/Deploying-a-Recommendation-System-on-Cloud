@@ -6,8 +6,11 @@
 
 import numpy as np
 from flask import Flask,render_template,request
-from recommendation_engine import Movie_recomendation_system
+from recommendation_engine import Movie_recomendation_system,Recommendation_tools
 app = Flask(__name__)
+
+
+user_preference = Recommendation_tools.get_user_preference()
 
 
 @app.route('/')
@@ -20,9 +23,9 @@ def recommend_movies():
     features = [x for x in request.form.values()]
     target_user_id = int(features[0])
     #movie_title =  features[1]
-    output = Movie_recomendation_system.automatic_recommendation(target_user_id)
+    output = Movie_recomendation_system.automatic_recommendation(user_preference,target_user_id)
 
-    return render_template('index.html', prediction_text=output)
+    return render_template('index.html', prediction_text='Recommended movies {}'.format(output))
 
 if __name__ == "__main__":
     app.run(debug=True)
