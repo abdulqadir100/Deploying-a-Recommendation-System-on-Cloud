@@ -29,12 +29,6 @@
         </button>
       </form>
     </div>
-    <div class="output">
-      <ul>
-        {% for entry in prediction_text %}
-        <li>{{ entry }}</li>
-        {% end for %}
-      </ul>
-    </div>
+    <div class="output">{{ prediction_text }}</div>
   </body>
 </html>
